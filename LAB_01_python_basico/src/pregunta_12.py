@@ -9,4 +9,22 @@ def pregunta_12():
         {"A": 177, "B": 187, "C": 114, ...}
     """
 
-    raise NotImplementedError
+    import pandas as pd 
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "data.csv.gz"
+    dt = pd.read_csv(ruta, sep="\t", header=None)
+    dt[4] = dt[4].astype('str').str.split(',')
+    dt2 = dt[[4]].explode(4)
+    dt2[4] = dt2[4].apply(lambda x: x[4:])
+    dt2['letra'] = dt[0]
+    dt2[4] = dt2[4].astype('int')
+
+    dic = dict(dt2.groupby('letra')[4].sum())
+
+
+    return dic 
+    
+    
+
+
+pregunta_12()

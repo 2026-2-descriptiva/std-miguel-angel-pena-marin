@@ -9,4 +9,14 @@ def pregunta_08():
         [(0, ["C"]), (1, ["B", "E"]), (2, ["A", "E"]), ...]
     """
 
-    raise NotImplementedError
+    import pandas as pd 
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "data.csv.gz"
+    dt = pd.read_csv(ruta, sep="\t", header=None)
+    dt2 = dt.groupby(1)[0].unique()
+    
+    
+    return [(valor, sorted(letras)) for valor, letras in dt2.items()]
+    
+
+print(pregunta_08())

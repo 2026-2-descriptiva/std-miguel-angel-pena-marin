@@ -12,5 +12,15 @@ def pregunta_06():
 
         [("aaa", 1, 9), ("bbb", 1, 9), ...]
     """
+    import pandas as pd 
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "data.csv.gz"
+    dt = pd.read_csv(ruta, sep="\t", header=None)
+    dt2 = dt[4].astype('str').str.split(",").explode()
+    dt2 = dt2.str.split(':', expand=True)
+    dt2[1] = dt2[1].astype('int')
+    dt2 = dt2.groupby(0)[1].agg(['min', 'max'])
+   
+    return [(letra, fila['min'], fila['max']) for letra, fila in dt2.iterrows()]
 
-    raise NotImplementedError
+print(pregunta_06())

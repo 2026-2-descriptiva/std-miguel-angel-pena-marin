@@ -8,5 +8,13 @@ def pregunta_09():
 
         {"aaa": 13, "bbb": 16, "ccc": 23, ...}
     """
+    import pandas as pd 
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "data.csv.gz"
+    dt = pd.read_csv(ruta, sep="\t", header=None)
+    dt2 = dt[4].astype('str').str.split(",").explode()
+    dt2 = dt2.str.split(':', expand=True)
 
-    raise NotImplementedError
+    return dict(dt2.groupby(0).size().items())
+
+pregunta_09()

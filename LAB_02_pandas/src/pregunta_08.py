@@ -12,4 +12,14 @@ def pregunta_08():
         ...
     """
 
-    raise NotImplementedError
+    import pandas as pd
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "tbl0.tsv"
+
+    dt = pd.read_csv(ruta, sep='\t')
+
+    dt['suma'] = dt['c0'] + dt['c2']
+
+    return (dt)
+       
+pregunta_08()

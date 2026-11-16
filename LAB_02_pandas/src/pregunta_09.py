@@ -13,4 +13,15 @@ def pregunta_09():
         ...
     """
 
-    raise NotImplementedError
+    import pandas as pd
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "tbl0.tsv"
+
+    dt = pd.read_csv(ruta, sep='\t')
+
+    dt['year'] = dt['c3'].astype('str').str[:4]
+
+
+    return dt
+
+pregunta_09()

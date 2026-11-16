@@ -15,4 +15,18 @@ def pregunta_13():
         ...
     """
 
-    raise NotImplementedError
+    import pandas as pd
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "tbl0.tsv"
+    ruta2 = Path(__file__).resolve().parent.parent / "data" / "tbl2.tsv"
+
+    dt = pd.read_csv(ruta, sep='\t')
+    dt2 = pd.read_csv(ruta2, sep='\t')
+
+
+    dt = dt.merge(dt2, on="c0")
+    res = dt.groupby('c1')['c5b'].sum()
+
+    return res
+
+pregunta_13()

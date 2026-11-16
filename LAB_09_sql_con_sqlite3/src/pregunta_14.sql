@@ -27,3 +27,5 @@
 --
 --  Escriba su consulta debajo de esta línea.
 --
+    SELECT a.K0, AVG(b.c21) FROM tbl1 a INNER JOIN tbl2 b ON a.K1 = b.K1
+    WHERE a.c13 > 400 GROUP BY a.K0

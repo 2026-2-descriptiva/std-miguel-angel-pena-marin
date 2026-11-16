@@ -44,4 +44,85 @@ def build_cohort_analysis() -> pd.DataFrame:
         ...
     """
 
-    raise NotImplementedError
+    import pandas as pd
+    import numpy as np
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from pathlib import Path
+    
+    base = Path(__file__).resolve().parent.parent
+    ruta = base / 'data' / 'sales.csv.gz'
+    dt = pd.read_csv(ruta, sep=',')
+
+    dt['OrderDate'] = pd.to_datetime(dt['OrderDate'])
+    dt['order_month'] = dt['OrderDate'].dt.to_period('M')
+    dt['cohort_month'] = dt.groupby('CustomerID')['order_month'].transform('min')
+
+    dt['period_index'] = (
+        (dt['order_month'].dt.year - dt['cohort_month'].dt.year) * 12
+        + (dt['order_month'].dt.month - dt['cohort_month'].dt.month)
+    )
+    dt['cohort_month'] = dt['cohort_month'].dt.strftime('%Y-%m')
+
+    cohort_re = (
+        dt.groupby(['cohort_month', 'period_index'])
+          .agg(active_customers=('CustomerID', 'nunique'))
+          .reset_index()
+    )
+
+    size = (
+        cohort_re[cohort_re['period_index'] == 0]
+        .set_index('cohort_month')['active_customers']
+        .rename('cohort_size')
+    )
+    cohort_re = cohort_re.merge(size, on='cohort_month', how='left')
+    cohort_re['retention_rate'] = (cohort_re['active_customers']
+                                   / cohort_re['cohort_size'])
+    cohort_re = (
+        cohort_re.sort_values(['cohort_month', 'period_index'])
+                 .reset_index(drop=True)
+    )
+
+    # Mapa de calor
+    pivot = cohort_re.pivot(index='cohort_month', columns='period_index',
+                            values='retention_rate')
+    datos = np.ma.masked_invalid(pivot.values)
+
+    cmap = plt.get_cmap('Blues').copy()
+    cmap.set_bad('white')   # períodos no observables quedan vacíos
+
+    fig, ax = plt.subplots(figsize=(max(8, pivot.shape[1] * 0.7),
+                                    max(6, pivot.shape[0] * 0.4)))
+    im = ax.imshow(datos, cmap=cmap, aspect='auto', vmin=0, vmax=1)
+
+    ax.set_xticks(range(pivot.shape[1]))
+    ax.set_xticklabels(pivot.columns)
+    ax.set_yticks(range(pivot.shape[0]))
+    ax.set_yticklabels(pivot.index)
+    ax.set_xlabel('Período (meses desde la primera compra)')
+    ax.set_ylabel('Cohorte')
+    ax.set_title('Retención por cohorte')
+
+    for i in range(pivot.shape[0]):
+        for j in range(pivot.shape[1]):
+            valor = pivot.values[i, j]
+            if not np.isnan(valor):
+                ax.text(j, i, f'{valor:.0%}', ha='center', va='center',
+                        fontsize=7,
+                        color='white' if valor > 0.6 else 'black')
+
+    fig.colorbar(im, ax=ax, format=lambda x, _: f'{x:.0%}')
+    fig.tight_layout()
+
+    out = base / 'submission'
+    out.mkdir(exist_ok=True)
+    fig.savefig(out / 'cohort_retention_heatmap.png', dpi=150)
+    plt.close(fig)
+
+    cohort_re.to_csv(out / 'cohort_retention.csv', index=False)
+
+    return cohort_re
+
+build_cohort_analysis()
+

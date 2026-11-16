@@ -12,5 +12,14 @@ def pregunta_03():
         C     5
         ...
     """
+    import pandas as pd
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "tbl0.tsv"
 
-    raise NotImplementedError
+    dt = pd.read_csv(ruta, sep='\t')
+
+    res = dt.groupby('c1').size()
+
+    return res.sort_index()
+
+pregunta_03()

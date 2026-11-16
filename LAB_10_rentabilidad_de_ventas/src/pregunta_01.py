@@ -50,4 +50,77 @@ def pregunta_01() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         ...
     """
 
-    raise NotImplementedError
+    import pandas as pd
+    import numpy as np
+    import json
+    from pathlib import Path
+ 
+    base = Path(__file__).resolve().parent.parent
+    ruta = base / 'data' / 'superstore_orders.csv.gz'
+    dt = pd.read_csv(ruta, sep=';')
+
+    dt['Sales'] = dt['Sales'].str.replace(",", ".").astype(float)
+    dt['Profit'] = dt['Profit'].str.replace(",", ".").astype(float)
+    dt['loss'] = (-dt['Profit']).clip(lower=0)
+    dt['is_loss'] = dt['Profit'] < 0
+    prof_sum = pd.DataFrame(
+        {'lines': len(dt),
+         'orders': len(dt['Order ID'].unique()),
+         'sales': dt['Sales'].sum(),
+         'profit': dt['Profit'].sum(),
+         'profit_margin': dt['Profit'].sum() / dt['Sales'].sum(),
+         'loss_lines': (dt['Profit'] < 0 ).sum(),
+         'loss_line_rate': (dt['Profit'] < 0 ).sum() / len(dt),
+         'lost_profit': abs(dt['Profit'][dt['Profit'] < 0].sum())}, 
+         index=[0]
+    )   
+
+    dt['Discount'] = dt['Discount'].str.replace(',', '.').astype(float)
+    
+    bins = [-1, 0, 0.05, 0.1, np.inf]
+    etiquetas = ['0%', '1%-5%', '6%-10%', 'más de 10%']
+    dt['discount_band'] = pd.cut(dt['Discount'], bins=bins, labels=etiquetas)
+
+    disc_sum = (
+    dt.groupby('discount_band', observed=False)
+      .agg(
+          lines=('Order ID', 'count'),
+          sales=('Sales', 'sum'),
+          profit=('Profit', 'sum'),
+          loss_lines=('is_loss', 'sum'),
+          lost_profit=('loss', 'sum'),
+      )
+      .reset_index()
+    )
+    disc_sum['profit_margin'] = disc_sum['profit'] / disc_sum['sales']
+    disc_sum['loss_line_rate'] = disc_sum['loss_lines'] / disc_sum['lines']
+    disc_sum = disc_sum[['discount_band', 'lines', 'sales', 'profit',
+                         'profit_margin', 'loss_line_rate', 'lost_profit']]
+
+    priority = (
+        dt.groupby(['Customer Segment', 'Product Category'])
+          .agg(
+              lines=('Order ID', 'count'),
+              sales=('Sales', 'sum'),
+              profit=('Profit', 'sum'),
+              lost_profit=('loss', 'sum'),
+          )
+          .reset_index()
+    )
+    priority['profit_margin'] = priority['profit'] / priority['sales']
+    priority = (
+        priority[priority['lines'] >= 100]
+          .sort_values('lost_profit', ascending=False)
+          .head(5)
+    )
+    priority = priority[['Customer Segment', 'Product Category', 'lines',
+                         'sales', 'profit', 'profit_margin', 'lost_profit']]
+
+    out = base / 'submission'
+    prof_sum.to_csv(out / 'profitability_summary.csv', index=False)
+    disc_sum.to_csv(out / 'discount_summary.csv', index=False)
+    priority.to_csv(out / 'priority_segments.csv', index=False)
+
+    return prof_sum, disc_sum, priority
+
+pregunta_01()

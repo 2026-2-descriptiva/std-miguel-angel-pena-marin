@@ -43,4 +43,47 @@ def clean_campaign_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         ...
     """
 
-    raise NotImplementedError
+    import pandas as pd
+    import os 
+    from pathlib import Path
+    from functools import reduce
+
+    base = Path(__file__).resolve().parent.parent
+    carpeta = base / "data"
+    archivos = sorted(carpeta.glob("*.csv.gz"))
+    dfs = [pd.read_csv(f, sep=",") for f in archivos]
+
+    
+    dt = pd.concat((pd.read_csv(f) for f in archivos), ignore_index=True)
+
+    dt_client = dt[['client_id', 'age', 'job', 'marital', 'education', 'credit_default', 'mortgage']].copy()
+    
+    dt_client['job'] = dt_client['job'].str.replace('.', '')
+    dt_client['job'] = dt_client['job'].str.replace('-', '_')
+    dt_client['education'] = dt_client['education'].str.replace('.', '_')
+    dt_client['education'] = dt_client['education'].replace('unknown', pd.NA)
+    dt_client['credit_default'] = dt_client['credit_default'].map({'yes': 1}).fillna(0).astype(int)
+    dt_client['mortgage'] = dt_client['mortgage'].map({'yes': 1}).fillna(0).astype(int)
+    
+    dt_campaing = dt[['client_id', 'number_contacts', 'contact_duration', 'previous_campaign_contacts', 'previous_outcome', 'campaign_outcome']].copy()
+    dt_campaing['previous_outcome'] = dt_campaing['previous_outcome'].map({'success': 1}).fillna(0).astype(int)
+    dt_campaing['campaign_outcome'] = dt_campaing['campaign_outcome'].map({'yes': 1}).fillna(0).astype(int)
+
+    dt_campaing["last_contact_date"] = pd.to_datetime(
+    "2022-" + dt["month"].str.strip().str.lower() + "-" + dt["day"].astype(str),
+    format="%Y-%b-%d",
+    errors="coerce",
+    ).dt.strftime("%Y-%m-%d")
+
+    dt_economics = dt[['client_id', 'cons_price_idx', 'euribor_three_months']]
+
+    ruta = Path(__file__).resolve().parent.parent
+    dt_client.to_csv(os.path.join(ruta, "submission", "client.csv"), index= False, sep=',')
+    dt_campaing.to_csv(os.path.join(ruta, "submission", "campaign.csv"), index= False, sep=',')
+    dt_economics.to_csv(os.path.join(ruta, "submission", "economics.csv"), index= False, sep=',')
+
+
+
+    return dt_client, dt_campaing, dt_economics
+    
+clean_campaign_data()

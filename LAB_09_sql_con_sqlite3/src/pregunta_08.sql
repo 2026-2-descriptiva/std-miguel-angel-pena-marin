@@ -25,3 +25,6 @@
 --
 --  Escriba su consulta debajo de esta línea.
 --
+    SELECT STRFTIME('%Y', c23) AS anio, AVG(c21) AS promedio
+    FROM tbl2
+    GROUP BY anio;

@@ -80,4 +80,85 @@ def pregunta_01():
         }
     """
 
-    raise NotImplementedError
+    import pandas as pd
+    import numpy as np
+    import json
+    from pathlib import Path
+
+    base = Path(__file__).resolve().parent.parent
+    ruta = base / 'data' / 'insurance.csv.gz'
+    dt = pd.read_csv(ruta)
+
+    dt['fumador'] = (dt['smoker'].str.strip().str.lower() == 'yes').astype(int)
+
+    qi_original = ['age', 'sex', 'bmi', 'children', 'region']
+    tam_orig = dt.groupby(qi_original).size()
+    original_k = int(tam_orig.min())
+    original_unique_records = int((tam_orig == 1).sum())
+
+    dt['age_group'] = pd.cut(dt['age'], bins=[17, 29, 39, 49, 64],
+                             labels=['18-29', '30-39', '40-49', '50-64'])
+
+    dt['bmi_group'] = pd.cut(dt['bmi'], bins=[0, 18.5, 25, 30, np.inf],
+                             labels=['bajo peso', 'normal', 'sobrepeso', 'obesidad'],
+                             right=False)
+
+    dt['children_group'] = pd.cut(dt['children'], bins=[-1, 0, 2, np.inf],
+                                  labels=['0', '1-2', '3+'])
+
+    def evaluar(cols):
+        clases = (
+            dt.groupby(cols, observed=True)
+              .agg(tam=('fumador', 'size'), fum=('fumador', 'sum'))
+              .reset_index()
+        )
+        pub = clases[clases['tam'] >= 5]
+        sin_div = pub[(pub['fum'] == 0) | (pub['fum'] == pub['tam'])]
+        return {
+            'quasi_identifiers': cols,
+            'equivalence_classes': int(len(clases)),
+            'k_before_suppression': int(clases['tam'].min()),
+            'suppressed_records': int(clases.loc[clases['tam'] < 5, 'tam'].sum()),
+            'published_records': int(pub['tam'].sum()),
+            'published_classes': int(len(pub)),
+            'classes_without_smoker_diversity': int(len(sin_div)),
+            'records_without_smoker_diversity': int(sin_div['tam'].sum()),
+        }
+
+    esquemas = {
+        'with_children': ['age_group', 'sex', 'bmi_group', 'children_group', 'region'],
+        'without_children': ['age_group', 'sex', 'bmi_group', 'region'],
+    }
+    schemes = {nombre: evaluar(c) for nombre, c in esquemas.items()}
+
+    selected = min(schemes, key=lambda n: schemes[n]['suppressed_records'])
+    cols_sel = esquemas[selected]
+
+    dt['tam_clase'] = dt.groupby(cols_sel, observed=True)['smoker'].transform('size')
+    publicados = dt[dt['tam_clase'] >= 5]
+
+    report = {
+        'original_k': original_k,
+        'original_unique_records': original_unique_records,
+        'schemes': schemes,
+        'selected_scheme': selected,
+        'mean_charges_original': float(dt['charges'].mean()),
+        'mean_charges_published': float(publicados['charges'].mean()),
+        'smoker_rate_original': float(dt['fumador'].mean()),
+        'smoker_rate_published': float(publicados['fumador'].mean()),
+    }
+
+    salida = base / 'submission'
+    salida.mkdir(parents=True, exist_ok=True)
+
+    with open(salida / 'privacy_report.json', 'w', encoding='utf-8') as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+
+    publicados[cols_sel + ['smoker', 'charges']].to_csv(
+        salida / 'insurance_published.csv', index=False
+    )
+
+    return report
+
+ 
+pregunta_01()

@@ -8,5 +8,10 @@ def pregunta_02():
 
         [("A", 8), ("B", 7), ("C", 5), ...]
     """
-
-    raise NotImplementedError
+    import pandas as pd 
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "data.csv.gz"
+    dt = pd.read_csv(ruta, sep="\t", header=None)
+    
+    dt2 = dt.groupby(0).size()
+    return list(dt2.items())

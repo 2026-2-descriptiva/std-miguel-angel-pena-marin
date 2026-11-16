@@ -9,4 +9,12 @@ def pregunta_05():
         [("A", 9, 2), ("B", 9, 1), ...]
     """
 
-    raise NotImplementedError
+    import pandas as pd 
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "data.csv.gz"
+    dt = pd.read_csv(ruta, sep="\t", header=None)
+    dt2 = dt.groupby(0)[1].agg(['max', 'min'])
+    
+    return [(letra, int(fila['max']), int(fila['min'])) for letra, fila in dt2.iterrows()]
+
+print(pregunta_05())

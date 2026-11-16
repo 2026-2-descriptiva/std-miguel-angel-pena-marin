@@ -47,5 +47,53 @@ def main():
           "country_values": [" Colombia ", "CO", ...]
         }
     """
+    import json
+    import pandas as pd
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "ventas.csv.gz"
 
-    raise NotImplementedError
+    dt = pd.read_csv(ruta, sep=',')
+    dt.columns = ['supplier_id','supplier','country','city','purchase_date','amount','discount','weight','units','unit_price','contact_email']
+
+    columnas_req = [
+    "supplier_id", "supplier",
+    "country", "city", "purchase_date", "amount", "discount", "weight",
+    "units", "unit_price", "contact_email"
+    ]
+
+    duplicados = dt.duplicated().sum()
+    duplicados_id_supp = dt['supplier_id'].duplicated(keep=False).sum()
+
+
+    dic =  {}
+
+    for col in dt.columns:
+        dic[col] = int(dt[col].isna().sum())
+
+    patron = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+    dominios_malos = int((~dt["contact_email"].str.match(patron, na=False)).sum())
+
+    enteros = int((dt['units'] % 1 != 0).sum()) - dt['units'].isna().sum()
+    paises = sorted(list(dt['country'].unique()))
+
+    datos = {
+      "row_count": len(dt),
+      "column_count": len(dt.columns),
+      "missing_required_columns": sorted(set(columnas_req) - set(dt.columns)),
+      "unexpected_columns": sorted(set(dt.columns) - set(columnas_req)),
+      "duplicate_row_count": int(duplicados),
+      "duplicate_supplier_id_row_count": int(duplicados_id_supp),
+      "missing_value_count_by_column": dic,
+      "invalid_email_count": dominios_malos,
+      "invalid_unit_count": int(enteros),
+      "country_values": paises
+    }
+
+    ruta2 = Path(__file__).resolve().parent.parent / "submission" / "data_quality_report.json"
+    with open(ruta2, "w") as f:
+        json.dump(datos, f, ensure_ascii=False, indent=4)
+    
+
+    
+
+main()

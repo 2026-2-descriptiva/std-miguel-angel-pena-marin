@@ -9,4 +9,12 @@ def pregunta_04():
         [("01", 3), ("02", 4), ("03", 2), ...]
     """
 
-    raise NotImplementedError
+    import pandas as pd 
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "data.csv.gz"
+    dt = pd.read_csv(ruta, sep="\t", header=None)
+    
+    dt['mes'] = dt[2].astype('str').str[5:7]
+    return list(dt.groupby('mes').size().items())
+
+

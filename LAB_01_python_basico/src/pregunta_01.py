@@ -7,5 +7,15 @@ def pregunta_01():
 
         214
     """
+    
+    import pandas as pd 
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "data.csv.gz"
+    dt = pd.read_csv(ruta, sep="\t", header=None)
+    valor = sum(dt[1])
 
-    raise NotImplementedError
+
+    return valor
+
+
+pregunta_01()

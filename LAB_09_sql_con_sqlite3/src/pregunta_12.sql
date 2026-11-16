@@ -25,3 +25,4 @@
 --
 --  Escriba su consulta debajo de esta línea.
 --
+    SELECT K0, MAX(c12), MIN(C12) FROM tbl1 GROUP BY K0; 

@@ -25,5 +25,34 @@ def pregunta_01():
         1        2                         102                          15.4
         ...
     """
+    import pandas as pd
+    from pathlib import Path
+    import re
+    ruta = Path(__file__).resolve().parent.parent / "data" / "clusters_report.txt"
+    registros = []
+    patron = re.compile(r"^\s*(\d+)\s+(\d+)\s+([\d,]+)\s*%\s*(.*)$")
+    with open(ruta, encoding="utf-8") as f:
+      for linea in f:
+          linea = linea.rstrip("\n")
+          m = patron.match(linea)
+          if m:
+              registros.append([m.group(1), m.group(2), m.group(3), m.group(4).strip()])
+          elif registros and linea.strip():
+              registros[-1][3] += " " + linea.strip()
+              
+              
+    dt = pd.DataFrame(registros, columns= ['cluster', 'cantidad_de_palabras_clave', 'porcentaje_de_palabras_clave', 'principales_palabras_clave'])
+    dt['cluster'] = dt['cluster'].astype('int')
+    dt['cantidad_de_palabras_clave'] = dt['cantidad_de_palabras_clave'].astype('int')
 
-    raise NotImplementedError
+    dt['porcentaje_de_palabras_clave'] = dt['porcentaje_de_palabras_clave'].str.replace(',', '.').astype('float')
+    dt['principales_palabras_clave'] = dt['principales_palabras_clave'].str.replace(".","")
+    dt['principales_palabras_clave'] = dt['principales_palabras_clave'].str.replace(r"\s+"," ", regex=True)
+    dt['principales_palabras_clave'] = dt['principales_palabras_clave'].str.strip()
+    
+    return dt
+    
+
+
+
+pregunta_01()

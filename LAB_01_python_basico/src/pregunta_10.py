@@ -11,4 +11,14 @@ def pregunta_10():
         [("E", 3, 5), ("A", 3, 4), ("B", 4, 4), ...]
     """
 
-    raise NotImplementedError
+    import pandas as pd 
+    from pathlib import Path
+    ruta = Path(__file__).resolve().parent.parent / "data" / "data.csv.gz"
+    dt = pd.read_csv(ruta, sep="\t", header=None)
+    dt[3] = dt[3].astype('str').str.split(',')
+    dt[4] = dt[4].astype('str').str.split(',')
+
+    return [(fila[0], len(fila[3]), len(fila[4])) for it, fila in dt.iterrows()]
+
+
+print(pregunta_10())
