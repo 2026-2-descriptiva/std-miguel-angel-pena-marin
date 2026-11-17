@@ -1,3 +1,29 @@
+from pathlib import Path
+
+import pandas as pd
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = BASE_DIR / "data"
+OUTPUT_DIR = BASE_DIR / "submission"
+
+SPLITS = ("train", "test")
+COLUMNS = ["phrase", "target"]
+
+
+def load_split(split_dir: Path) -> pd.DataFrame:
+    """Lee todas las frases de un split y las etiqueta con el nombre de su carpeta."""
+    records = [
+        {
+            "phrase": file.read_text(encoding="utf-8").strip(),
+            "target": label_dir.name,
+        }
+        for label_dir in sorted(split_dir.iterdir())
+        if label_dir.is_dir()
+        for file in sorted(label_dir.glob("*.txt"))
+    ]
+    return pd.DataFrame(records, columns=COLUMNS)
+
+
 def pregunta_01():
     """
     Las frases de este laboratorio no están en una tabla, sino en miles de
@@ -26,35 +52,8 @@ def pregunta_01():
         ...
     """
 
-    import glob
-    import pandas as pd
-    from pathlib import Path
-    import os
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    train = []
-    test = []
-    ruta = Path(__file__).resolve().parent.parent
-    archivos1 = glob.glob(f"{ruta}/data/test/*/*.txt", recursive = True)
-    archivos2 = glob.glob(f"{ruta}/data/train/*/*.txt", recursive = True)
-    for ruta in archivos1:
-        with open(ruta) as f:
-            frase = f.read().strip()
-        emocion = os.path.basename(os.path.dirname(ruta))
-        test.append({'phrase': frase, 'target': emocion})
-    for ruta in archivos2:
-        with open(ruta) as f:
-            frase = f.read().strip()
-        emocion = os.path.basename(os.path.dirname(ruta))
-        train.append({'phrase': frase, 'target': emocion})
-
-    
-
-    test_dt = pd.DataFrame(test)
-    train_dt = pd.DataFrame(train)
-    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    test_dt.to_csv(os.path.join(raiz, "submission", "test_dataset.csv"), index= False)
-    train_dt.to_csv(os.path.join(raiz, "submission", "train_dataset.csv"), index= False)
-    
-    
-
-pregunta_01()
+    for split in SPLITS:
+        dataset = load_split(DATA_DIR / split)
+        dataset.to_csv(OUTPUT_DIR / f"{split}_dataset.csv", index=False)
